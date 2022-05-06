@@ -254,3 +254,38 @@ full join #TES E
 on e.Match_Id=v.Match_Id and e.Innings_No=v.Innings_No
 where e.Innings_No=1 or e.Innings_No=2 -- Because Innings_No 3 or above are Super Overs
 order by v.Match_Id
+
+
+
+
+--*********************************************************************--
+--STRIKE RATE, Runs Each Player at Each Ball
+
+drop table if exists dbo.#temp1;
+with cte as (select BS.*,BB.Striker, Convert(Float,SUM(BS.Runs_Scored) over (partition by BS.match_id,BS.innings_no, BB.Striker
+order by BS.match_id,BS.innings_no, BS.Over_id, BS.ball_id)) AS RunningTotalRuns,
+Convert(Float,Count(BB.Ball_Id) over (partition by BB.match_id,BB.innings_no, BB.striker
+order by BS.match_id,BS.innings_no, BS.Over_id, BS.ball_id))  as TotalBallsPlayed from Ball_by_Ball BB
+full join Batsman_Scored BS
+on BB.Match_Id=BS.Match_Id and BB.Innings_No=BS.Innings_No and BS.Over_Id=BB.Over_Id
+and BB.Ball_Id=BS.Ball_Id
+where BS.Ball_Id is not null
+)
+select *,  Round((RunningTotalRuns/TotalBallsPlayed)*100,0) AS StrikeRate into #temp1 from cte
+group by Match_Id,Innings_No,Over_Id,Ball_Id, Striker, TotalBallsPlayed,runs_scored,RunningTotalRuns
+order by Match_Id,Innings_No,Over_Id,Ball_Id, Striker
+;
+
+select * from #temp1
+
+--*********************************************************************--
+--STRIKE RATE, TotalBallsPlayed and TotalRuns Each Player Each Match
+
+select T1.Match_Id,T1.Innings_No,T1.Striker,P.Player_Name, MAX(T1.TotalBallsPlayed) AS TotalBallsPlayed, 
+MAX(T1.RunningTotalRuns) AS TotalRuns,MAX(T1.StrikeRate) AS StrikeRate, M.Match_Date from #temp1 T1
+join Player P
+on P.Player_Id= T1.Striker
+join Match M
+on M.Match_Id=T1.Match_Id
+group by T1.Match_Id,T1.Innings_No, T1.Striker,P.Player_Name, M.Match_Date
+order by T1.Match_Id
