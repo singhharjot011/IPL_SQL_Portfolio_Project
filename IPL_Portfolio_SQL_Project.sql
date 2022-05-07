@@ -289,3 +289,50 @@ join Match M
 on M.Match_Id=T1.Match_Id
 group by T1.Match_Id,T1.Innings_No, T1.Striker,P.Player_Name, M.Match_Date
 order by T1.Match_Id
+
+
+--*********************************************************************--
+--Centuries
+select T1.Match_Id,T1.Innings_No,T1.Striker,P.Player_Name, MAX(T1.TotalBallsPlayed) AS TotalBallsPlayed, 
+MAX(T1.RunningTotalRuns) AS TotalRuns,MAX(T1.StrikeRate) AS StrikeRate, M.Match_Date from #temp1 T1
+join Player P
+on P.Player_Id= T1.Striker
+join Match M
+on M.Match_Id=T1.Match_Id
+where T1.RunningTotalRuns>=100
+group by T1.Match_Id,T1.Innings_No, T1.Striker,P.Player_Name, M.Match_Date
+order by TotalBallsPlayed,Player_Name ,T1.Match_Id
+
+
+
+--Fastest Centuries
+
+Select x.Match_Id, x.Innings_No,x.Striker,x.RunningTotalRuns,x.TotalBallsPlayed,p.Player_Name from (select *,Lag(RunningTotalRuns) over (order by match_id,striker) AS LAGG from #temp1) x
+join Player P
+on p.Player_Id=x.Striker
+where x.LAGG<100 and RunningTotalRuns>=100
+order by TotalBallsPlayed
+
+
+--Fifties 50s
+
+select T1.Match_Id,T1.Innings_No,T1.Striker,P.Player_Name, MAX(T1.TotalBallsPlayed) AS TotalBallsPlayed, 
+MAX(T1.RunningTotalRuns) AS TotalRuns,MAX(T1.StrikeRate) AS StrikeRate, M.Match_Date from #temp1 T1
+join Player P
+on P.Player_Id= T1.Striker
+join Match M
+on M.Match_Id=T1.Match_Id
+where T1.RunningTotalRuns<=100 and T1.RunningTotalRuns>=50
+group by T1.Match_Id,T1.Innings_No, T1.Striker,P.Player_Name, M.Match_Date
+order by TotalBallsPlayed,Player_Name ,T1.Match_Id
+
+
+--Fastest Fifties 
+Select x.Match_Id, x.Innings_No,x.Striker,x.RunningTotalRuns,x.TotalBallsPlayed,p.Player_Name from (select *,Lag(RunningTotalRuns) over (order by match_id,striker) AS LAGG from #temp1) x
+join Player P
+on p.Player_Id=x.Striker
+where x.LAGG<50 and RunningTotalRuns>=50
+order by TotalBallsPlayed
+
+
+--*********************************************************************--
